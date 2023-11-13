@@ -112,3 +112,117 @@ def taskCreater():
       "error": True
     }
     return jsonify(response), 500
+  
+@main.route('/v1/tasks/<taskId>', methods=['GET', 'DELETE', 'PUT'])
+def getSpecificTask(taskId):
+  try:
+    if request.method == 'POST':
+      task = mongo.db.tasks.find_one({'_id': ObjectId(taskId)})
+      if not task:
+        response = {
+          "success": False,
+          "payload":{
+            'data': None,
+            'message': 'No such tasks found'
+          },
+          "error": False
+        }
+        return jsonify(response), 404
+      
+      else:
+        task['_id'] = str(task['_id'])
+        response = {
+          "success": True,
+          "payload":{
+            'data': task,
+            'message': 'Found task'
+          },
+          "error": False
+        }
+        return jsonify(response), 200
+      
+    if request.method == 'PUT':
+      data = request.get_json()
+      tasks = mongo.db.tasks
+      task = {"$set": {'title': data['title'], 'complete': data['is_completed']}}
+      updateResult = tasks.update_one({'_id': ObjectId(taskId)}, task)
+      if updateResult.matched_count == 1:
+        response = {
+          "success": True,
+          "payload":{
+            'data': {'_id': taskId,'title': data['title'], 'complete': data['is_completed']},
+            'message': 'Updated the task'
+          },
+          "error": False
+        }
+        
+        return jsonify(response), 201
+      else :
+        response = {
+          "success": False,
+          "payload":{
+            'data': None,
+            'message': 'No such tasks found'
+          },
+          "error": False
+        }
+        return jsonify(response), 404
+      
+      
+    else:
+      deleteResult = mongo.db.tasks.delete_one({'_id': ObjectId(taskId)})
+      if deleteResult.deleted_count == 0:      
+        response = {
+            "success": False,
+            "payload":{
+              'data': None,
+              'message': 'No such tasks found'
+            },
+            "error": False
+          }
+        return jsonify(response), 400
+      
+      else:
+        response = {
+            "success": True,
+            "payload":{
+              'data': {'_id': taskId},
+              'message': 'Deleted Successfully'
+            },
+            "error": False
+          }
+        return jsonify(response), 200
+      
+  except KeyError:
+    response = {
+      "success": False,
+      "payload":{
+        'data': None,
+        'message': 'Pass correct data'
+      },
+      "error": True
+    }
+    return jsonify(response), 400
+
+  except InvalidId:
+    response = {
+      "success": False,
+      "payload":{
+        'data': None,
+        'message': 'Invalid Id'
+      },
+      "error": True
+    }
+    return jsonify(response), 400
+  
+  except Exception as e:
+    print("Error : Adding task", str(e))
+    response = {
+      "success": False,
+      "payload":{
+        'data': None,
+        'message': 'Internal Server Error'
+      },
+      "error": True
+    }
+    return jsonify(response), 500
